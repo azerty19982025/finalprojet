@@ -1,0 +1,54 @@
+const User = require('../models/User');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+// Inscription d'un nouvel utilisateur
+exports.register = async (req, res) => {
+  try {
+    const user = new User(req.body);
+    await user.save();
+    const token = await user.generateAuthToken();
+    res.status(201).send({ user, token });
+  } catch (error) {
+    res.status(400).send({ error: error.message });
+  }
+};
+
+// Connexion d'un utilisateur
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      throw new Error('Identifiants incorrects');
+    }
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
+      throw new Error('Identifiants incorrects');
+    }
+    
+    const token = await user.generateAuthToken();
+    res.send({ user, token });
+  } catch (error) {
+    res.status(400).send({ error: error.message });
+  }
+};
+
+// Déconnexion
+exports.logout = async (req, res) => {
+  try {
+    req.user.tokens = req.user.tokens.filter(token => token.token !== req.token);
+    await req.user.save();
+    res.send();
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+};
+
+// Récupération du profil utilisateur
+exports.getProfile = async (req, res) => {
+  res.send(req.user);
+};
